@@ -3,9 +3,10 @@
 #include <string>
 #include <filesystem>
 
-#include "util.cxx"
+#include "util.hxx"
+#include "parse.hxx"
 
-void usage(std::string message) {
+static void usage(std::string message) {
     std::cout << "usage: ./csr1.exe <config_file_name>" << std::endl;
     std::cout << (message.empty() ? "" : message) << std::endl;
 }
@@ -22,10 +23,19 @@ int main(int argc, char** argv) {
         program_name = vec[0];
         file_name = vec[1];
     }
-    if(!std::filesystem::exists(file_name.clone_to_std_str())) {
+    if(!std::filesystem::exists(file_name.to_std_str())) {
         usage("ERROR: file provided in argument doesn't exist.");
         exit(1);
     }
 
-    std::cout << FileReader(file_name.clone_to_std_str()).lines().to_std_str() << std::endl;
+    try {
+        std::cout << ConfigFile(file_name.to_std_str()).try_parse_or_throw().to_std_str() << std::endl;
+    }
+    catch(Exception& e) {
+        std::cout << "CONFIG FILE ERROR: " << e.what() << std::endl;
+        exit(1);
+    }
+
+
+    return 0;
 }
