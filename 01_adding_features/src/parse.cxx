@@ -8,6 +8,8 @@ ConfigParam::ConfigParam(std::string line) {
     this->value = StringWrapper(parsed_param[1]).trim().to_std_str();
 }
 
+ConfigParam::ConfigParam(std::string new_name, std::string new_value): name(new_name), value(new_value) {}
+
 bool ConfigParam::is_valid(const std::string& alleged_param) {
     VectorWrapper parsed_param { StringWrapper(alleged_param).split("=") };
     return (parsed_param.size() == 2) &&
@@ -23,6 +25,15 @@ std::string ConfigParam::get_value() {
     return this->value;
 }
 
+ConfigParam& ConfigParam::set_value(std::string new_value) {
+    this->value = new_value;
+
+    return *this;
+}
+
+std::string ConfigSection::get_name() {
+    return this->name;
+}
 
 ConfigSection& ConfigSection::set_name(std::string line) {
     if(ConfigSection::is_valid(line)) {
@@ -42,6 +53,26 @@ ConfigSection& ConfigSection::add_param(ConfigParam&& param) {
     this->params.emplace_back(param);
 
     return *this;
+}
+
+ConfigSection& ConfigSection::update_param(std::string param_name, std::string param_value) {
+    ConfigParam* update_me = this->get_param_by_name(param_name);
+    if(!update_me) {
+        throw Exception(StringWrapper("ConfigSection::update_param(): tried to update param \'").append(param_name).append("\' in section \'").append(this->name).append("\' which does not exist.").to_std_str());
+    }
+
+    update_me->set_value(param_value);
+    return *this;
+}
+
+ConfigParam* ConfigSection::get_param_by_name(std::string param_name) {
+    for(size_t index = 0; index < this->params.size(); index++) {
+        if(this->params[index].get_name() == param_name) {
+            return &this->params[index];
+        }
+    }
+
+    return nullptr;
 }
 
 bool ConfigSection::is_valid(const std::string& alleged_section_name) {
@@ -96,4 +127,49 @@ std::string ConfigFile::to_std_str() {
     converted.append("}\n");
 
     return converted.to_std_str();
+}
+
+ConfigSection* ConfigFile::get_section_by_name(std::string section_name) {
+    for(size_t index = 0; index < this->sections.size(); index++) {
+        if(this->sections[index].get_name() == section_name) {
+            return &this->sections[index];
+        }
+    }
+
+    return nullptr;
+}
+
+VectorWrapper ConfigFile::try_read_write_params_or_throw(std::vector<ReadWriteAction> actions) {
+    std::vector<std::string> result {};
+    for(auto action : actions) {
+        ConfigSection* maybe_section = this->get_section_by_name(action.section_name);
+        ConfigParam* maybe_param = nullptr;
+
+        if(maybe_section) {
+            maybe_param = maybe_section->get_param_by_name(action.parameter_name);
+        }
+        else {
+            throw Exception(StringWrapper("ConfigFile::try_read_write_params_or_throw(): Section \'").append(action.section_name).append("\' does not exist.").to_std_str());
+        }
+
+        if(action.mode == RWMode::Read) {
+            if(!maybe_param) {
+                throw Exception(StringWrapper("ConfigFile::try_read_write_params_or_throw(): Parameter \'").append(action.parameter_name).append("\' does not exist.").to_std_str());
+            }
+
+            result.push_back(StringWrapper("\'").append(maybe_param->get_name()).append("\' => \';").append(maybe_param->get_value()).append("\'").to_std_str());
+        }
+        else if(action.mode == RWMode::Write) {
+            if(!maybe_param) {
+                maybe_section->add_param(ConfigParam(action.parameter_name, action.parameter_value));
+            }
+            else {
+                maybe_section->update_param(action.parameter_name, action.parameter_value);
+            }
+
+            result.push_back(StringWrapper("Wrote value \'").append(action.parameter_value).append("\' to parameter \'").append(action.parameter_name).append("\';").to_std_str());
+        }
+    }
+
+    return VectorWrapper { result };
 }

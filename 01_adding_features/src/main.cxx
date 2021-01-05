@@ -5,6 +5,7 @@
 
 #include "util.hxx"
 #include "parse.hxx"
+#include "cli.hxx"
 
 static void usage(std::string message) {
     std::cout << "usage: ./csr1.exe <config_file_name>" << std::endl;
@@ -12,30 +13,37 @@ static void usage(std::string message) {
 }
 
 int main(int argc, char** argv) {
-    VectorWrapper vec { std::vector<std::string>(argv, argv + argc) };
-    StringWrapper program_name { std::string() };
-    StringWrapper file_name { std::string() };
-    if(vec.size() != 2) {
-        usage("ERROR: wrong number of arguments, expected config file name and nohting more/less.");
-        exit(1);
-    }
-    else {
-        program_name = vec[0];
-        file_name = vec[1];
-    }
-    if(!std::filesystem::exists(file_name.to_std_str())) {
-        usage("ERROR: file provided in argument doesn't exist.");
-        exit(1);
-    }
-
+    // command line checks
+    CommandLine command_line(argc, argv);
     try {
-        std::cout << ConfigFile(file_name.to_std_str()).try_parse_or_throw().to_std_str() << std::endl;
+        command_line.validate().parse();
     }
     catch(Exception& e) {
-        std::cout << "CONFIG FILE ERROR: " << e.what() << std::endl;
+        std::cout << "COMMAND LINE PARSING ERROR: " << e.what() << std::endl;
         exit(1);
     }
-
+    
+    // actual logic
+    if(command_line.get_mode() == CLMode::WholeFile) {
+        try {
+            std::cout << ConfigFile(command_line.get_file_name()).try_parse_or_throw().to_std_str() << std::endl;
+        }
+        catch(Exception& e) {
+            usage("");
+            std::cout << "CONFIG FILE ERROR: " << e.what() << std::endl;
+            exit(1);
+        }
+    }
+    else if (command_line.get_mode() == CLMode::Params) {
+        try {
+            std::cout << ConfigFile(command_line.get_file_name()).try_parse_or_throw().try_read_write_params_or_throw(command_line.get_read_write_list()).to_std_str() << std::endl;
+        }
+        catch(Exception& e) {
+            usage("");
+            std::cout << "READ/WRITE PARAMS ERROR: " << e.what() << std::endl;
+            exit(1);
+        }
+    }
 
     return 0;
 }
