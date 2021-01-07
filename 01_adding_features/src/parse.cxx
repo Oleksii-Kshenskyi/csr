@@ -157,7 +157,7 @@ VectorWrapper ConfigFile::try_read_write_params_or_throw(std::vector<ReadWriteAc
                 throw Exception(StringWrapper("ConfigFile::try_read_write_params_or_throw(): Parameter \'").append(action.parameter_name).append("\' does not exist.").to_std_str());
             }
 
-            result.push_back(StringWrapper("\'").append(maybe_param->get_name()).append("\' => \';").append(maybe_param->get_value()).append("\'").to_std_str());
+            result.push_back(StringWrapper("\'").append(maybe_param->get_name()).append("\' => \'").append(maybe_param->get_value()).append("\';").to_std_str());
         }
         else if(action.mode == RWMode::Write) {
             if(!maybe_param) {

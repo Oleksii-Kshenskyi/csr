@@ -46,11 +46,11 @@ CommandLine& CommandLine::parse() {
     while(index < this->raw_command_line.size()) {
         if(this->raw_command_line[index] == "-r") {
             actions.push_back(ReadWriteAction(RWMode::Read, this->raw_command_line[index + 1], this->raw_command_line[index + 2], ""));
-            index += 2;
+            index += 3;
         }
         else if(this->raw_command_line[index] == "-w") {
             actions.push_back(ReadWriteAction(RWMode::Write, this->raw_command_line[index + 1], this->raw_command_line[index + 2], this->raw_command_line[index + 3]));
-            index += 3;
+            index += 4;
         }
         else {
             filenames.push_back(this->raw_command_line[index]);
