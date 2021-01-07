@@ -91,8 +91,19 @@ std::string ConfigSection::to_std_str(const std::string& padding) {
     return result.to_std_str();
 }
 
+std::string ConfigSection::to_config_section_str() {
+    StringWrapper conf_sect_str("");
+    conf_sect_str.append("[").append(this->name).append("]\n");
 
-ConfigFile::ConfigFile(const std::string& file_name): lines(FileReader(file_name).lines().trim_empty()), sections() {}
+    for(auto param : params) {
+        conf_sect_str.append("\t").append(param.get_name()).append(" = ").append(param.get_value()).append("\n");
+    }
+
+    return conf_sect_str.append("\n").to_std_str();
+}
+
+
+ConfigFile::ConfigFile(const std::string& file_name): lines(FileReader(file_name).lines().trim_empty()), sections(), filename(file_name) {}
 
 VectorWrapper ConfigFile::raw_lines() {
     return this->lines;
@@ -129,6 +140,15 @@ std::string ConfigFile::to_std_str() {
     return converted.to_std_str();
 }
 
+std::string ConfigFile::to_config_file_str() {
+    StringWrapper conf_str("");
+    for(ConfigSection section: this->sections) {
+        conf_str.append(section.to_config_section_str()).append("\n");
+    }
+
+    return conf_str.to_std_str();
+}
+
 ConfigSection* ConfigFile::get_section_by_name(std::string section_name) {
     for(size_t index = 0; index < this->sections.size(); index++) {
         if(this->sections[index].get_name() == section_name) {
@@ -139,11 +159,29 @@ ConfigSection* ConfigFile::get_section_by_name(std::string section_name) {
     return nullptr;
 }
 
+ConfigSection* ConfigFile::create_section(std::string new_section_name) {
+    this->sections.push_back(ConfigSection().set_name(StringWrapper("[").append(new_section_name).append("]").to_std_str()));
+
+    return &this->sections[this->sections.size() - 1];
+}
+
+ConfigFile& ConfigFile::write_state_to_config_file() {
+    FileWriter(this->filename).trunc_mode().write_line(this->to_config_file_str()).close();
+
+    return *this;
+}
+
 VectorWrapper ConfigFile::try_read_write_params_or_throw(std::vector<ReadWriteAction> actions) {
     std::vector<std::string> result {};
+    bool has_to_write = false;
+
     for(auto action : actions) {
         ConfigSection* maybe_section = this->get_section_by_name(action.section_name);
         ConfigParam* maybe_param = nullptr;
+
+        if(!maybe_section && action.mode == RWMode::Write) {
+            maybe_section = this->create_section(action.section_name);
+        }
 
         if(maybe_section) {
             maybe_param = maybe_section->get_param_by_name(action.parameter_name);
@@ -160,6 +198,8 @@ VectorWrapper ConfigFile::try_read_write_params_or_throw(std::vector<ReadWriteAc
             result.push_back(StringWrapper("\'").append(maybe_param->get_name()).append("\' => \'").append(maybe_param->get_value()).append("\';").to_std_str());
         }
         else if(action.mode == RWMode::Write) {
+            has_to_write = true;
+
             if(!maybe_param) {
                 maybe_section->add_param(ConfigParam(action.parameter_name, action.parameter_value));
             }
@@ -171,5 +211,8 @@ VectorWrapper ConfigFile::try_read_write_params_or_throw(std::vector<ReadWriteAc
         }
     }
 
+    if(has_to_write) {
+        this->write_state_to_config_file();
+    }
     return VectorWrapper { result };
 }

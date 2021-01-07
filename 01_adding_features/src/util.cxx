@@ -32,3 +32,27 @@ FileReader& FileReader::reset() {
 
     return *this;
 }
+
+FileWriter::FileWriter(const std::string& file_name): file(std::ofstream(file_name)), name(file_name) {}
+
+FileWriter& FileWriter::trunc_mode() {
+    if(this->file.is_open()) {
+        file.close();
+    }
+    file.open(this->name, std::ios::trunc);
+
+    return *this;
+}
+
+FileWriter& FileWriter::write_line(std::string write_me) {
+    this->file << write_me;
+
+    return *this;
+}
+
+FileWriter& FileWriter::close() {
+    this->file.close();
+
+    return *this;
+}
+

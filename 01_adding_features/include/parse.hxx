@@ -28,6 +28,8 @@ class ConfigSection {
         ConfigParam* get_param_by_name(std::string param_name);
         static bool is_valid(const std::string& alleged_section_name);
         std::string to_std_str(const std::string& padding = "");
+        std::string to_config_section_str();
+        std::string to_config_file_str();
     private:
         std::vector<ConfigParam> params;
         std::string name;
@@ -40,10 +42,14 @@ class ConfigFile {
         ConfigFile& try_parse_or_throw();
         VectorWrapper try_read_write_params_or_throw(std::vector<ReadWriteAction> actions);
         std::string to_std_str();
+        std::string to_config_file_str();
         ConfigSection* get_section_by_name(std::string section_name);
+        ConfigSection* create_section(std::string new_section_name);
+        ConfigFile& write_state_to_config_file();
     private:
         VectorWrapper lines;
         std::vector<ConfigSection> sections;
+        std::string filename;
 };
 
 #endif

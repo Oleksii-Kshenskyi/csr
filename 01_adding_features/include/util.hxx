@@ -46,4 +46,15 @@ class FileReader {
         std::ifstream file;
 };
 
+class FileWriter {
+    public:
+        FileWriter(const std::string& file_name);
+        FileWriter& trunc_mode();
+        FileWriter& write_line(std::string write_me);
+        FileWriter& close();
+    private:
+        std::ofstream file;
+        std::string name;
+};
+
 #endif

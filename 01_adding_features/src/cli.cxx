@@ -10,14 +10,14 @@ CommandLine& CommandLine::validate() {
     size_t index = 1;
     while(index < this->raw_command_line.size()) {
         if(this->raw_command_line[index] == "-r") {
-            if(this->raw_command_line.size() < index + 2) {
+            if(this->raw_command_line.size() < index + 3) {
                 throw Exception("CommandLine::validate(): expected two parameters for -r flag.");
             }
             index += 3;
             continue;
         }
         else if(this->raw_command_line[index] == "-w") {
-            if(this->raw_command_line.size() < index + 3) {
+            if(this->raw_command_line.size() < index + 4) {
                 throw Exception("CommandLine::validate(): expected three parameters for -w flag.");
             }
             index += 4;
